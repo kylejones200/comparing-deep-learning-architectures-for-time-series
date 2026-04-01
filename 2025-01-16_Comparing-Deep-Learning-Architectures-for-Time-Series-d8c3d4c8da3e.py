@@ -168,11 +168,11 @@ def evaluate_and_plot(y_test, results, scaler):
         logger.info(f"{model} MSE: {mse:.3f}")
     return mse_scores
 
-FNN MSE: 0.003
-LSTM MSE: 0.002
-CNN MSE: 0.004
-TCN MSE: 0.039
-Transformer MSE: 0.004
+# FNN MSE: 0.003
+# LSTM MSE: 0.002
+# CNN MSE: 0.004
+# TCN MSE: 0.039
+# Transformer MSE: 0.004
 
 # Main workflow
 filepath = "ercot_load_data.csv"  # Replace with your dataset file path
@@ -187,8 +187,8 @@ results = run_models(X_train, X_test, y_train, y_test, n_steps)
 # Evaluate and visualize results
 mse_scores = evaluate_and_plot(y_test, results, scaler)
 
-FNN MSE: 16.667
-LSTM MSE: 74.771
-CNN MSE: 41.956
-TCN MSE: 4109.727
-Transformer MSE: 1066.972
+# FNN MSE: 16.667
+# LSTM MSE: 74.771
+# CNN MSE: 41.956
+# TCN MSE: 4109.727
+# Transformer MSE: 1066.972
