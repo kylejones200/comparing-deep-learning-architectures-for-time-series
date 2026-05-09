@@ -52,7 +52,7 @@ def main():
         data, config['model']['lag'], config['model']['train_size']
     )
     
-            results = {}
+    results = {}
     for arch in config['model']['architectures']:
         y_pred = np.full(len(y_test), y_train.mean())
         y_pred_inverse = scaler.inverse_transform(y_pred.reshape(-1, 1)).flatten()

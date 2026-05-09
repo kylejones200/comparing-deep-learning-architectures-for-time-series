@@ -8,6 +8,12 @@ from sklearn.metrics import mean_absolute_error
 from darts import TimeSeries
 from darts.models import NBEATSModel
 
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 np.random.seed(42)
 plt.rcParams.update(
     {
@@ -87,7 +93,7 @@ def main():
     cfg = Config()
     ts = load_series(cfg)
     mean_mae, (y_true, y_pred) = rolling_origin_nbeats(ts, cfg)
-    print(f"N-BEATS mean MAE: {mean_mae}")
+    logger.info(f"N-BEATS mean MAE: {mean_mae}")
 
     plt.figure(figsize=(9, 4))
     ts.plot(label="history", alpha=0.6)
