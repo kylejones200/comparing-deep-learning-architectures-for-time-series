@@ -89,18 +89,19 @@ def rolling_origin_nbeats(ts: TimeSeries, cfg: Config):
     return float(np.mean(maes)), (last_true, last_pred)
 
 
-def main():
+def main(plot: bool = False):
     cfg = Config()
     ts = load_series(cfg)
     mean_mae, (y_true, y_pred) = rolling_origin_nbeats(ts, cfg)
     logger.info(f"N-BEATS mean MAE: {mean_mae}")
 
-    plt.figure(figsize=(9, 4))
-    ts.plot(label="history", alpha=0.6)
-    if y_pred is not None:
-        y_pred.plot(label="N-BEATS last fold")
-    plt.legend()
-    save_fig("eia_nbeats_last_fold.png")
+    if plot:
+        plt.figure(figsize=(9, 4))
+        ts.plot(label="history", alpha=0.6)
+        if y_pred is not None:
+            y_pred.plot(label="N-BEATS last fold")
+        plt.legend()
+        save_fig("eia_nbeats_last_fold.png")
 
 
 if __name__ == "__main__":

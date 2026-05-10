@@ -46,18 +46,19 @@ def calculate_model_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict:
 def plot_architecture_comparison(results: Dict[str, np.ndarray], actual: np.ndarray,
                                 title: str, output_path: Path):
     """Plot comparison of different architectures """
-    fig, ax = plt.subplots(figsize=(10, 6))
+                                if plot:
+        fig, ax = plt.subplots(figsize=(10, 6))
     
-    ax.plot(actual, label="Actual", color="#4A90A4", linewidth=1.2)
+        ax.plot(actual, label="Actual", color="#4A90A4", linewidth=1.2)
     
-    colors = ["#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
-    for i, (name, pred) in enumerate(results.items()):
-        ax.plot(pred, label=name, color=colors[i % len(colors)], linewidth=1.2, alpha=0.7)
+        colors = ["#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
+        for i, (name, pred) in enumerate(results.items()):
+            ax.plot(pred, label=name, color=colors[i % len(colors)], linewidth=1.2, alpha=0.7)
     
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Value")
-    ax.legend(loc='best')
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        ax.legend(loc='best')
     
-    plt.savefig(output_path, dpi=100, bbox_inches="tight")
-    plt.close()
+        plt.savefig(output_path, dpi=100, bbox_inches="tight")
+        plt.close()
 

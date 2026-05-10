@@ -148,19 +148,20 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
 results = run_models(X_train, X_test, y_train, y_test, n_steps=30)
 
 # Function to evaluate and visualize results
-def evaluate_and_plot(y_test, results, scaler):
+def evaluate_and_plot(y_test, results, scaler, plot: bool = False):
     y_test_inv = scaler.inverse_transform(y_test.reshape(-1, 1))
     predictions_inv = {name: scaler.inverse_transform(pred) for name, pred in results.items()}
 
     # Plot predictions
-    plt.figure(figsize=(12, 6))
-    plt.plot(y_test_inv, label='True')
-    for name, pred in predictions_inv.items():
-        plt.plot(pred, label=f'Predicted ({name})')
-    plt.title('Model Comparisons')
-    plt.legend()
-    plt.savefig("Model_Comparisons.png")
-    plt.show()
+    if plot:
+        plt.figure(figsize=(12, 6))
+        plt.plot(y_test_inv, label='True')
+        for name, pred in predictions_inv.items():
+            plt.plot(pred, label=f'Predicted ({name})')
+        plt.title('Model Comparisons')
+        plt.legend()
+        plt.savefig("Model_Comparisons.png")
+        plt.show()
 
     # Calculate and print MSE
     mse_scores = {name: mean_squared_error(y_test_inv, pred) for name, pred in predictions_inv.items()}
