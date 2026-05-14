@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate Tufte-style visualizations for transformer forecasting article."""
 
+import signalplot
 import logging
 from pathlib import Path
 
@@ -24,33 +25,7 @@ except ImportError:
 except Exception:
     tf = None
 
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "font.serif": ["Palatino", "Times New Roman", "Times"],
-        "font.size": 11,
-        "axes.labelsize": 11,
-        "axes.titlesize": 13,
-        "axes.titleweight": "normal",
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 10,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.linewidth": 0.5,
-        "axes.edgecolor": "#333333",
-        "axes.labelcolor": "#333333",
-        "xtick.color": "#333333",
-        "ytick.color": "#333333",
-        "text.color": "#333333",
-        "axes.grid": False,
-        "figure.facecolor": "white",
-        "axes.facecolor": "white",
-        "savefig.facecolor": "white",
-        "savefig.dpi": 300,
-        "savefig.bbox": "tight",
-    }
-)
+signalplot.apply(font_family='serif')
 
 IMAGES_DIR = Path("images")
 IMAGES_DIR.mkdir(exist_ok=True)
@@ -336,31 +311,6 @@ results = {
 }
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['Palatino', 'Times New Roman', 'Times'],
-    'font.size': 11,
-    'axes.labelsize': 11,
-    'axes.titlesize': 13,
-    'axes.titleweight': 'normal',
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'legend.fontsize': 10,
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'axes.linewidth': 0.5,
-    'axes.edgecolor': '#333333',
-    'axes.labelcolor': '#333333',
-    'xtick.color': '#333333',
-    'ytick.color': '#333333',
-    'text.color': '#333333',
-    'axes.grid': False,
-    'figure.facecolor': 'white',
-    'axes.facecolor': 'white',
-    'savefig.facecolor': 'white',
-    'savefig.dpi': 300,
-    'savefig.bbox': 'tight',
-})
 
 # MAE comparison
 mae_values = [results[m]['MAE'] for m in results.keys()]
@@ -399,31 +349,6 @@ transformer_pred_inv = scaler.inverse_transform(transformer_pred[:, 0].reshape(-
 y_test_inv = scaler.inverse_transform(y_test[:, 0].reshape(-1, 1)).flatten()
 
 fig, ax = plt.subplots(figsize=(14, 6))
-plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['Palatino', 'Times New Roman', 'Times'],
-    'font.size': 11,
-    'axes.labelsize': 11,
-    'axes.titlesize': 13,
-    'axes.titleweight': 'normal',
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'legend.fontsize': 10,
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'axes.linewidth': 0.5,
-    'axes.edgecolor': '#333333',
-    'axes.labelcolor': '#333333',
-    'xtick.color': '#333333',
-    'ytick.color': '#333333',
-    'text.color': '#333333',
-    'axes.grid': False,
-    'figure.facecolor': 'white',
-    'axes.facecolor': 'white',
-    'savefig.facecolor': 'white',
-    'savefig.dpi': 300,
-    'savefig.bbox': 'tight',
-})
 
 # Plot historical data
 historical_dates = ts_data.index[:split_idx + seq_length]

@@ -1,3 +1,4 @@
+import signalplot
 import logging
 
 logger = logging.getLogger(__name__)
@@ -253,12 +254,7 @@ results = {
 
 # Create comparison visualization
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-plt.rcParams.update({
-    'axes.grid': False,
-    'font.family': 'serif',
-    'axes.spines.top': False,
-    'axes.spines.right': False
-})
+signalplot.apply(font_family='serif')
 
 # MAE comparison
 mae_values = [results[m]['MAE'] for m in results.keys()]
@@ -295,11 +291,6 @@ y_test_inv = scaler.inverse_transform(y_test[:, 0].reshape(-1, 1)).flatten()
 
 # Plot
 fig, ax = plt.subplots(figsize=(14, 6))
-plt.rcParams.update({
-    'font.family': 'serif',
-    'axes.spines.top': False,
-    'axes.spines.right': False
-})
 
 # Plot historical data
 historical_dates = ts_data.index[:split_idx + seq_length]
