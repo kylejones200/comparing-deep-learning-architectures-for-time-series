@@ -22,7 +22,7 @@ try:
 except ImportError:
     tf = None
 except Exception:
-    pass
+    tf = None
 
 plt.rcParams.update(
     {
