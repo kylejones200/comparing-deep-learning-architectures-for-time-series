@@ -69,15 +69,10 @@ def savefig_tufte(filename: str | Path, **kwargs) -> None:
 
 plt.savefig = savefig_tufte
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
 
 # Set random seeds for reproducibility
 np.random.seed(42)
 try:
-    import tensorflow as tf
     tf.random.set_seed(42)
 except ImportError:
     tf = None
@@ -200,7 +195,6 @@ logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
 
 # Code block 4
 try:
-    import tensorflow as tf
 except ImportError:
     tf = None
 from tensorflow.keras.models import Sequential

@@ -115,7 +115,6 @@ arima_rmse = np.sqrt(mean_squared_error(ts_test[:len(arima_forecast)], arima_for
 logger.info(f"ARIMA MAE: {arima_mae:.2f}")
 logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
 
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
