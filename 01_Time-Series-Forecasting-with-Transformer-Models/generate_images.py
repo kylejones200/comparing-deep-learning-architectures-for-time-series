@@ -388,11 +388,8 @@ plt.savefig('transformer_comparison.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 # Print summary table
-logger.info("\n" + "="*60)
-logger.info("MODEL COMPARISON SUMMARY")
-logger.info("="*60)
+logger.info("=== MODEL COMPARISON SUMMARY ===")
 logger.info(f"{'Model':<15} {'MAE':<12} {'RMSE':<12} {'Time (s)':<12}")
-logger.info("-"*60)
 for model, metrics in results.items():
     logger.info(f"{model:<15} {metrics['MAE']:<12.4f} {metrics['RMSE']:<12.4f} {metrics['Time']:<12.2f}")
 
