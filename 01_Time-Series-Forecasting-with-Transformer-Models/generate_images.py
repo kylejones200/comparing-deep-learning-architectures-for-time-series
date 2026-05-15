@@ -16,7 +16,6 @@ logging.basicConfig(
 )
 
 # Set random seeds
-np.random.seed(42)
 try:
     import tensorflow as tf
     tf.random.set_seed(42)
@@ -46,7 +45,6 @@ plt.savefig = savefig_tufte
 
 
 # Set random seeds for reproducibility
-np.random.seed(42)
 try:
     tf.random.set_seed(42)
 except ImportError:
@@ -222,6 +220,7 @@ logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 # Code block 5
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dense, Input, Dropout
 from tensorflow.keras.models import Model
+np.random.seed(42)
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     """Transformer encoder block with multi-head attention"""

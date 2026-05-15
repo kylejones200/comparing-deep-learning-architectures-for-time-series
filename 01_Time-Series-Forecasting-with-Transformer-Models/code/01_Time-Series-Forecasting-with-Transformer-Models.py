@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Set random seeds for reproducibility
-np.random.seed(42)
 import tensorflow as tf
 tf.random.set_seed(42)
 
@@ -165,6 +164,7 @@ logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 
 from tensorflow.keras.layers import MultiHeadAttention, LayerNormalization, Dense, Input, Dropout
 from tensorflow.keras.models import Model
+np.random.seed(42)
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     """Transformer encoder block with multi-head attention"""
