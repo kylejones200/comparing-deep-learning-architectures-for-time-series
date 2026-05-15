@@ -1,13 +1,14 @@
-# Description: Short example for Comparing Deep Learning Architectures for Time Series.
+"""Generated from Jupyter notebook: neural networks in python
+
+Magics and shell lines are commented out. Run with a normal Python interpreter."""
 
 
-import logging
+# --- code cell ---
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from data_io import read_csv
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.layers import (
@@ -17,27 +18,6 @@ from tensorflow.keras.layers import (
     LayerNormalization,
     MultiHeadAttention,
 )
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-
-
-# Generate synthetic data
-date_rng = pd.date_range(start="2020-01-01", end="2022-12-31", freq="D")
-n = len(date_rng)
-trend = np.linspace(0, 100, n)
-seasonality = 10 * np.sin(2 * np.pi * np.arange(n) / 365.25)
-noise = np.random.normal(0, 5, n)
-y = trend + seasonality + noise
-df = pd.DataFrame(data={"date": date_rng, "value": y})
-
-# Normalize and prepare data
-scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(df[["value"]])
-X, y = prepare_data(scaled_data, n_steps=30)
 
 
 # Function to prepare data for time series modeling
@@ -51,7 +31,7 @@ def prepare_data(data, n_steps):
 
 # Function to load and preprocess data
 def load_and_preprocess_data(filepath, n_steps=30):
-    df = read_csv(filepath, parse_dates=["date"], index_col="date")
+    df = pd.read_csv(filepath, parse_dates=["date"], index_col="date")
     df.sort_index(inplace=True)
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(df[["values"]])
@@ -183,27 +163,22 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     return results
 
 
-# Train models (FNN, LSTM, CNN, TCN, Transformer)
-results = run_models(X_train, X_test, y_train, y_test, n_steps=30)
-
-
 # Function to evaluate and visualize results
-def evaluate_and_plot(y_test, results, scaler, plot: bool = False):
+def evaluate_and_plot(y_test, results, scaler):
     y_test_inv = scaler.inverse_transform(y_test.reshape(-1, 1))
     predictions_inv = {
         name: scaler.inverse_transform(pred) for name, pred in results.items()
     }
 
     # Plot predictions
-    if plot:
-        plt.figure(figsize=(12, 6))
-        plt.plot(y_test_inv, label="True")
-        for name, pred in predictions_inv.items():
-            plt.plot(pred, label=f"Predicted ({name})")
-        plt.title("Model Comparisons")
-        plt.legend()
-        plt.savefig("Model_Comparisons.png")
-        plt.show()
+    plt.figure(figsize=(12, 6))
+    plt.plot(y_test_inv, label="True")
+    for name, pred in predictions_inv.items():
+        plt.plot(pred, label=f"Predicted ({name})")
+    plt.title("Model Comparisons")
+    plt.legend()
+    plt.savefig("Model_Comparisons.png")
+    plt.show()
 
     # Calculate and print MSE
     mse_scores = {
@@ -211,31 +186,25 @@ def evaluate_and_plot(y_test, results, scaler, plot: bool = False):
         for name, pred in predictions_inv.items()
     }
     for model, mse in mse_scores.items():
-        logger.info(f"{model} MSE: {mse:.3f}")
+        print(f"{model} MSE: {mse:.3f}")
     return mse_scores
 
 
-# FNN MSE: 0.003
-# LSTM MSE: 0.002
-# CNN MSE: 0.004
-# TCN MSE: 0.039
-# Transformer MSE: 0.004
 
-# Main workflow
-filepath = "ercot_load_data.csv"  # Replace with your dataset file path
-n_steps = 30
+def main():
+    # Main workflow
+    filepath = "ercot_load_data.csv"  # Replace with your dataset file path
+    n_steps = 30
 
-# Load and preprocess data
-X_train, X_test, y_train, y_test, scaler = load_and_preprocess_data(filepath, n_steps)
+    # Load and preprocess data
+    X_train, X_test, y_train, y_test, scaler = load_and_preprocess_data(filepath, n_steps)
 
-# Train models and get predictions
-results = run_models(X_train, X_test, y_train, y_test, n_steps)
+    # Train models and get predictions
+    results = run_models(X_train, X_test, y_train, y_test, n_steps)
 
-# Evaluate and visualize results
-mse_scores = evaluate_and_plot(y_test, results, scaler)
+    # Evaluate and visualize results
+    mse_scores = evaluate_and_plot(y_test, results, scaler)
 
-# FNN MSE: 16.667
-# LSTM MSE: 74.771
-# CNN MSE: 41.956
-# TCN MSE: 4109.727
-# Transformer MSE: 1066.972
+
+if __name__ == "__main__":
+    main()

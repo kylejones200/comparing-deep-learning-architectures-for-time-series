@@ -1,24 +1,22 @@
-import signalplot
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from pathlib import Path
-from dataclasses import dataclass
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import mean_absolute_error
+import signalplot
 from darts import TimeSeries
 from darts.models import NBEATSModel
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import TimeSeriesSplit
 
-import logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 np.random.seed(42)
-signalplot.apply(font_family='serif')
-
-
+signalplot.apply(font_family="serif")
 
 
 @dataclass
