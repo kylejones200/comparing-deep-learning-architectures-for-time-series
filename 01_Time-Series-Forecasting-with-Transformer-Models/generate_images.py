@@ -168,6 +168,8 @@ logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
 
 # Code block 4
 try:
+    import tensorflow as tf
+    tf.random.set_seed(42)
 except ImportError:
     tf = None
 from tensorflow.keras.models import Sequential

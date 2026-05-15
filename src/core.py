@@ -46,7 +46,7 @@ def calculate_model_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict:
 def plot_architecture_comparison(results: Dict[str, np.ndarray], actual: np.ndarray,
                                 title: str, output_path: Path):
     """Plot comparison of different architectures """
-                                if plot:
+    if plot:
         fig, ax = plt.subplots(figsize=(10, 6))
     
         ax.plot(actual, label="Actual", color="#4A90A4", linewidth=1.2)
