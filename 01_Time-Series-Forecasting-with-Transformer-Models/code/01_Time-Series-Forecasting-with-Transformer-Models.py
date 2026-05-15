@@ -257,17 +257,17 @@ fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 signalplot.apply(font_family='serif')
 
 # MAE comparison
-mae_values = [results[m]['MAE'] for m in results.keys()]
+mae_values = [results[m]['MAE'] for m in results]
 axes[0].bar(results.keys(), mae_values, color=['#1f77b4', '#ff7f0e', '#2ca02c'], alpha=0.8)
 axes[0].set_title('Mean Absolute Error', fontweight='bold', fontsize=12)
 axes[0].set_ylabel('MAE')
 # RMSE comparison
-rmse_values = [results[m]['RMSE'] for m in results.keys()]
+rmse_values = [results[m]['RMSE'] for m in results]
 axes[1].bar(results.keys(), rmse_values, color=['#1f77b4', '#ff7f0e', '#2ca02c'], alpha=0.8)
 axes[1].set_title('Root Mean Squared Error', fontweight='bold', fontsize=12)
 axes[1].set_ylabel('RMSE')
 # Training time comparison
-time_values = [results[m]['Time'] for m in results.keys()]
+time_values = [results[m]['Time'] for m in results]
 axes[2].bar(results.keys(), time_values, color=['#1f77b4', '#ff7f0e', '#2ca02c'], alpha=0.8)
 axes[2].set_title('Training Time', fontweight='bold', fontsize=12)
 axes[2].set_ylabel('Seconds')
