@@ -5,13 +5,14 @@ Magics and shell lines are commented out. Run with a normal Python interpreter."
 
 # --- code cell ---
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.layers import (
     Conv1D,
     Dense,
     Dropout,
@@ -21,6 +22,62 @@ from tensorflow.keras.layers import (
 
 
 # Function to prepare data for time series modeling
+class _TransformerForecaster(nn.Module):
+    """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
+    def __init__(self, n_features: int, d_model: int = 256, nhead: int = 4,
+                 ff_dim: int = 4, num_layers: int = 2,
+                 output_size: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.proj = nn.Linear(n_features, d_model)
+        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(layer, num_layers)
+        self.fc = nn.Linear(d_model, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.proj(x)
+        x = self.encoder(x)
+        return self.fc(x[:, -1, :])
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 15) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
+
 def prepare_data(data, n_steps):
     X, y = [], []
     for i in range(len(data) - n_steps):
@@ -86,79 +143,64 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     results = {}
 
     # FNN
-    model_fnn = tf.keras.Sequential(
+    model_fnn = Sequential(
         [
-            tf.keras.layers.Input(shape=(n_steps, 1)),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(64, activation="relu"),
-            tf.keras.layers.Dense(32, activation="relu"),
-            tf.keras.layers.Dense(1),
+            nn.Input(shape=(n_steps, 1)),
+            nn.Flatten(),
+            nn.Dense(64, activation="relu"),
+            nn.Dense(32, activation="relu"),
+            nn.Dense(1),
         ]
     )
-    model_fnn.compile(optimizer="adam", loss="mse")
-    model_fnn.fit(
-        X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-    )
-    results["FNN"] = model_fnn.predict(X_test)
+        _train_torch(model_fnn, X_train, y_train)
+    results["FNN"] = _predict_torch(model_fnn, X_test)
 
     # LSTM
     X_train_lstm = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
     X_test_lstm = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
-    model_lstm = tf.keras.Sequential(
+    model_lstm = Sequential(
         [
-            tf.keras.layers.Input(shape=(n_steps, 1)),
-            tf.keras.layers.LSTM(50, activation="relu"),
-            tf.keras.layers.Dense(1),
+            nn.Input(shape=(n_steps, 1)),
+            nn.LSTM(50, activation="relu"),
+            nn.Dense(1),
         ]
     )
-    model_lstm.compile(optimizer="adam", loss="mse")
-    model_lstm.fit(
-        X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-    )
-    results["LSTM"] = model_lstm.predict(X_test_lstm)
+        _train_torch(model_lstm, X_train_lstm, y_train)
+    results["LSTM"] = _predict_torch(model_lstm, X_test_lstm)
 
     # CNN
-    model_cnn = tf.keras.Sequential(
+    model_cnn = Sequential(
         [
-            tf.keras.layers.Input(shape=(n_steps, 1)),
-            tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation="relu"),
-            tf.keras.layers.MaxPooling1D(pool_size=2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(50, activation="relu"),
-            tf.keras.layers.Dense(1),
+            nn.Input(shape=(n_steps, 1)),
+            nn.Conv1D(filters=64, kernel_size=3, activation="relu"),
+            nn.MaxPooling1D(pool_size=2),
+            nn.Flatten(),
+            nn.Dense(50, activation="relu"),
+            nn.Dense(1),
         ]
     )
-    model_cnn.compile(optimizer="adam", loss="mse")
-    model_cnn.fit(
-        X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-    )
-    results["CNN"] = model_cnn.predict(X_test_lstm)
+        _train_torch(model_cnn, X_train_lstm, y_train)
+    results["CNN"] = _predict_torch(model_cnn, X_test_lstm)
 
     # TCN
-    inputs_tcn = tf.keras.layers.Input(shape=(n_steps, 1))
+    inputs_tcn = nn.Input(shape=(n_steps, 1))
     x = inputs_tcn
     for i in range(4):
         x = residual_block(x, dilation_rate=2**i, filters=64)
     x = Dense(1)(x[:, -1, :])
-    model_tcn = tf.keras.Model(inputs_tcn, x)
-    model_tcn.compile(optimizer="adam", loss="mse")
-    model_tcn.fit(
-        X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-    )
-    results["TCN"] = model_tcn.predict(X_test_lstm)
+    model_tcn = Model(inputs_tcn, x)
+        _train_torch(model_tcn, X_train_lstm, y_train)
+    results["TCN"] = _predict_torch(model_tcn, X_test_lstm)
 
     # Transformer
-    inputs_transformer = tf.keras.Input(shape=(n_steps, 1))
+    inputs_transformer = Input(shape=(n_steps, 1))
     x = inputs_transformer
     for _ in range(4):
         x = transformer_encoder(x, head_size=256, num_heads=4, ff_dim=4, dropout=0.1)
     x = Dense(1)(x[:, -1, :])
-    model_transformer = tf.keras.Model(inputs_transformer, x)
-    model_transformer.compile(optimizer="adam", loss="mse")
-    model_transformer.fit(
-        X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-    )
-    results["Transformer"] = model_transformer.predict(X_test_lstm)
+    model_transformer = Model(inputs_transformer, x)
+        _train_torch(model_transformer, X_train_lstm, y_train)
+    results["Transformer"] = _predict_torch(model_transformer, X_test_lstm)
 
     return results
 

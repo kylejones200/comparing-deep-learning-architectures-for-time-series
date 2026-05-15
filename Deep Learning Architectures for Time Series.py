@@ -5,10 +5,12 @@ Magics and shell lines are commented out. Run with a normal Python interpreter."
 
 # --- code cell ---
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
@@ -25,6 +27,62 @@ df = pd.DataFrame(data={"date": date_rng, "value": y})
 
 
 ## Feedforward Neural Networks: The Baseline
+class _TransformerForecaster(nn.Module):
+    """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
+    def __init__(self, n_features: int, d_model: int = 256, nhead: int = 4,
+                 ff_dim: int = 4, num_layers: int = 2,
+                 output_size: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.proj = nn.Linear(n_features, d_model)
+        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(layer, num_layers)
+        self.fc = nn.Linear(d_model, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.proj(x)
+        x = self.encoder(x)
+        return self.fc(x[:, -1, :])
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 15) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
+
 def prepare_data(data, n_steps):
     X, y = [], []
     for i in range(len(data) - n_steps):
@@ -48,23 +106,20 @@ y_train, y_test = y[:train_size], y[train_size:]
 
 # Build FNN model
 
-model_fnn = tf.keras.Sequential(
+model_fnn = Sequential(
     [
-        tf.keras.layers.Input(shape=(n_steps, 1)),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(32, activation="relu"),
-        tf.keras.layers.Dense(1),
+        nn.Input(shape=(n_steps, 1)),
+        nn.Flatten(),
+        nn.Dense(64, activation="relu"),
+        nn.Dense(32, activation="relu"),
+        nn.Dense(1),
     ]
 )
 
-model_fnn.compile(optimizer="adam", loss="mse")
-history_fnn = model_fnn.fit(
-    X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_fnn = _train_torch(model_fnn, X_train, y_train)
 
 # Evaluate FNN
-y_pred_fnn = model_fnn.predict(X_test)
+y_pred_fnn = _predict_torch(model_fnn, X_test)
 mse_fnn = mean_squared_error(y_test, y_pred_fnn)
 print(f"FNN MSE: {mse_fnn}")
 ## Long Short-Term Memory (LSTM): Capturing Long-Range Dependencies
@@ -73,48 +128,41 @@ X_train_lstm = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
 X_test_lstm = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
 
 # Build LSTM model
-model_lstm = tf.keras.Sequential(
+model_lstm = Sequential(
     [
-        tf.keras.layers.Input(shape=(n_steps, 1)),
-        tf.keras.layers.LSTM(50, activation="relu"),
-        tf.keras.layers.Dense(1),
+        nn.Input(shape=(n_steps, 1)),
+        nn.LSTM(50, activation="relu"),
+        nn.Dense(1),
     ]
 )
 
 
-model_lstm.compile(optimizer="adam", loss="mse")
-history_lstm = model_lstm.fit(
-    X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_lstm = _train_torch(model_lstm, X_train_lstm, y_train)
 
 # Evaluate LSTM
-y_pred_lstm = model_lstm.predict(X_test_lstm)
+y_pred_lstm = _predict_torch(model_lstm, X_test_lstm)
 mse_lstm = mean_squared_error(y_test, y_pred_lstm)
 print(f"LSTM MSE: {mse_lstm}")
 ## Convolutional Neural Networks (CNN): Capturing Local Patterns
 # Build CNN model
-model_cnn = tf.keras.Sequential(
+model_cnn = Sequential(
     [
-        tf.keras.layers.Input(shape=(n_steps, 1)),
-        tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation="relu"),
-        tf.keras.layers.MaxPooling1D(pool_size=2),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(50, activation="relu"),
-        tf.keras.layers.Dense(1),
+        nn.Input(shape=(n_steps, 1)),
+        nn.Conv1D(filters=64, kernel_size=3, activation="relu"),
+        nn.MaxPooling1D(pool_size=2),
+        nn.Flatten(),
+        nn.Dense(50, activation="relu"),
+        nn.Dense(1),
     ]
 )
 
-model_cnn.compile(optimizer="adam", loss="mse")
-history_cnn = model_cnn.fit(
-    X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_cnn = _train_torch(model_cnn, X_train_lstm, y_train)
 
 # Evaluate CNN
-y_pred_cnn = model_cnn.predict(X_test_lstm)
+y_pred_cnn = _predict_torch(model_cnn, X_test_lstm)
 mse_cnn = mean_squared_error(y_test, y_pred_cnn)
 print(f"CNN MSE: {mse_cnn}")
 ## Temporal Convolutional Networks (TCN): Combining CNN and RNN Strengths
-from tensorflow.keras.layers import Conv1D, Dense, Dropout, LayerNormalization
 
 
 def residual_block(x, dilation_rate, filters):
@@ -140,24 +188,20 @@ def residual_block(x, dilation_rate, filters):
 
 
 # Build TCN model
-inputs = tf.keras.layers.Input(shape=(n_steps, 1))
+inputs = nn.Input(shape=(n_steps, 1))
 x = inputs
 for i in range(4):
     x = residual_block(x, dilation_rate=2**i, filters=64)
 x = Dense(1)(x[:, -1, :])
-model_tcn = tf.keras.Model(inputs, x)
+model_tcn = Model(inputs, x)
 
-model_tcn.compile(optimizer="adam", loss="mse")
-history_tcn = model_tcn.fit(
-    X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_tcn = _train_torch(model_tcn, X_train_lstm, y_train)
 
 # Evaluate TCN
-y_pred_tcn = model_tcn.predict(X_test_lstm)
+y_pred_tcn = _predict_torch(model_tcn, X_test_lstm)
 mse_tcn = mean_squared_error(y_test, y_pred_tcn)
 print(f"TCN MSE: {mse_tcn}")
 ## Transformer: Attention-based Sequence Modeling
-from tensorflow.keras.layers import Dense, LayerNormalization, MultiHeadAttention
 
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
@@ -176,20 +220,17 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
 
 # Build Transformer model
-inputs = tf.keras.Input(shape=(n_steps, 1))
+inputs = Input(shape=(n_steps, 1))
 x = inputs
 for _ in range(4):
     x = transformer_encoder(x, head_size=256, num_heads=4, ff_dim=4, dropout=0.1)
 x = Dense(1)(x[:, -1, :])
-model_transformer = tf.keras.Model(inputs, x)
+model_transformer = Model(inputs, x)
 
-model_transformer.compile(optimizer="adam", loss="mse")
-history_transformer = model_transformer.fit(
-    X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_transformer = _train_torch(model_transformer, X_train_lstm, y_train)
 
 # Evaluate Transformer
-y_pred_transformer = model_transformer.predict(X_test_lstm)
+y_pred_transformer = _predict_torch(model_transformer, X_test_lstm)
 mse_transformer = mean_squared_error(y_test, y_pred_transformer)
 print(f"Transformer MSE: {mse_transformer}")
 
@@ -239,7 +280,6 @@ for model, mse in mse_scores.items():
 # --- code cell ---
 
 ## Transformer: Attention-based Sequence Modeling
-from tensorflow.keras.layers import Dense, LayerNormalization, MultiHeadAttention
 
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
@@ -258,20 +298,17 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
 
 # Build Transformer model
-inputs = tf.keras.Input(shape=(n_steps, 1))
+inputs = Input(shape=(n_steps, 1))
 x = inputs
 for _ in range(4):
     x = transformer_encoder(x, head_size=256, num_heads=4, ff_dim=4, dropout=0.1)
 x = Dense(1)(x[:, -1, :])
-model_transformer = tf.keras.Model(inputs, x)
+model_transformer = Model(inputs, x)
 
-model_transformer.compile(optimizer="adam", loss="mse")
-history_transformer = model_transformer.fit(
-    X_train_lstm, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0
-)
+history_transformer = _train_torch(model_transformer, X_train_lstm, y_train)
 
 # Evaluate Transformer
-y_pred_transformer = model_transformer.predict(X_test_lstm)
+y_pred_transformer = _predict_torch(model_transformer, X_test_lstm)
 mse_transformer = mean_squared_error(y_test, y_pred_transformer)
 print(f"Transformer MSE: {mse_transformer}")
 
@@ -332,7 +369,6 @@ plot_resampled_predictions(df_resampled, "Model Comparisons (Weekly Resampled)")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
@@ -398,44 +434,43 @@ def plot_predictions(true, predictions, title, resample_freq="D"):
 
 # Build and train all models
 models = {
-    "FNN": tf.keras.Sequential(
+    "FNN": Sequential(
         [
-            tf.keras.layers.Flatten(input_shape=(n_steps, 1)),
-            tf.keras.layers.Dense(64, activation="relu"),
-            tf.keras.layers.Dense(32, activation="relu"),
-            tf.keras.layers.Dense(1),
+            nn.Flatten(input_shape=(n_steps, 1)),
+            nn.Dense(64, activation="relu"),
+            nn.Dense(32, activation="relu"),
+            nn.Dense(1),
         ]
     ),
-    "LSTM": tf.keras.Sequential(
+    "LSTM": Sequential(
         [
-            tf.keras.layers.LSTM(50, activation="relu", input_shape=(n_steps, 1)),
-            tf.keras.layers.Dense(1),
+            nn.LSTM(50, activation="relu", input_shape=(n_steps, 1)),
+            nn.Dense(1),
         ]
     ),
-    "CNN": tf.keras.Sequential(
+    "CNN": Sequential(
         [
-            tf.keras.layers.Conv1D(
+            nn.Conv1D(
                 filters=64, kernel_size=3, activation="relu", input_shape=(n_steps, 1)
             ),
-            tf.keras.layers.MaxPooling1D(pool_size=2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(50, activation="relu"),
-            tf.keras.layers.Dense(1),
+            nn.MaxPooling1D(pool_size=2),
+            nn.Flatten(),
+            nn.Dense(50, activation="relu"),
+            nn.Dense(1),
         ]
     ),
 }
 
 # Add TCN model
-from tensorflow.keras.layers import Conv1D, Dense, Dropout, LayerNormalization
 
 
 def build_tcn(input_shape):
-    inputs = tf.keras.Input(shape=input_shape)
+    inputs = Input(shape=input_shape)
     x = inputs
     for i in range(4):
         x = residual_block(x, dilation_rate=2**i, filters=64)
     x = Dense(1)(x[:, -1, :])
-    return tf.keras.Model(inputs, x)
+    return Model(inputs, x)
 
 
 def residual_block(x, dilation_rate, filters):
@@ -464,22 +499,19 @@ models["TCN"] = build_tcn((n_steps, 1))
 
 # Compile all models
 for name, model in models.items():
-    model.compile(optimizer="adam", loss="mse")
-
+    
 # Train models
 histories = {}
 for name, model in models.items():
     print(f"Training {name}...")
-    history = model.fit(
-        X_train_lstm, y_train, epochs=20, batch_size=32, validation_split=0.2, verbose=0
-    )
+    history = _train_torch(model, X_train_lstm, y_train)
     histories[name] = history
 
 # Evaluate models
 predictions = {}
 for name, model in models.items():
     print(f"Evaluating {name}...")
-    y_pred = model.predict(X_test_lstm)
+    y_pred = _predict_torch(model, X_test_lstm)
     predictions[name] = scaler.inverse_transform(y_pred)
 
 # Plot predictions

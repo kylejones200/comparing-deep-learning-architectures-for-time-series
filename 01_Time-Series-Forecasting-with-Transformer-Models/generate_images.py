@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Generate Tufte-style visualizations for transformer forecasting article."""
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import logging
 from pathlib import Path
 
@@ -16,14 +19,6 @@ logging.basicConfig(
 )
 
 # Set random seeds
-try:
-    import tensorflow as tf
-
-    tf.random.set_seed(42)
-except ImportError:
-    tf = None
-except Exception:
-    tf = None
 
 signalplot.apply(font_family="serif")
 
@@ -32,6 +27,118 @@ IMAGES_DIR.mkdir(exist_ok=True)
 
 original_savefig = plt.savefig
 
+
+class _TransformerForecaster(nn.Module):
+    """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
+    def __init__(self, n_features: int, d_model: int = 64, nhead: int = 4,
+                 ff_dim: int = 128, num_layers: int = 2,
+                 output_size: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.proj = nn.Linear(n_features, d_model)
+        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(layer, num_layers)
+        self.fc = nn.Linear(d_model, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.proj(x)
+        x = self.encoder(x)
+        return self.fc(x[:, -1, :])
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 10) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
+
+class _TransformerForecaster(nn.Module):
+    """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
+    def __init__(self, n_features: int, d_model: int = 64, nhead: int = 4,
+                 ff_dim: int = 128, num_layers: int = 2,
+                 output_size: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.proj = nn.Linear(n_features, d_model)
+        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(layer, num_layers)
+        self.fc = nn.Linear(d_model, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.proj(x)
+        x = self.encoder(x)
+        return self.fc(x[:, -1, :])
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 10) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
 
 def savefig_tufte(filename: str | Path, **kwargs) -> None:
     """Save figures in the `images` directory with consistent style."""
@@ -47,7 +154,7 @@ plt.savefig = savefig_tufte
 
 # Set random seeds for reproducibility
 try:
-    tf.random.set_seed(42)
+    torch.manual_seed(42)
 except ImportError:
     tf = None
 
@@ -165,15 +272,6 @@ logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
 
 
 # Code block 4
-try:
-    import tensorflow as tf
-
-    tf.random.set_seed(42)
-except ImportError:
-    tf = None
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.models import Sequential
 
 # Reshape for LSTM: (samples, timesteps, features)
 X_train_lstm = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
@@ -190,7 +288,6 @@ lstm_model = Sequential(
     ]
 )
 
-lstm_model.compile(optimizer="adam", loss="mse", metrics=["mae"])
 lstm_model.summary()
 
 # Train with early stopping
@@ -198,20 +295,12 @@ logger.info("Training LSTM model...")
 start_time = time.time()
 
 early_stop = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-history = lstm_model.fit(
-    X_train_lstm,
-    y_train,
-    epochs=100,
-    batch_size=16,
-    validation_split=0.2,
-    callbacks=[early_stop],
-    verbose=0,
-)
+history = _train_torch(lstm_model, X_train_lstm, y_train)
 
 lstm_time = time.time() - start_time
 logger.info(f"LSTM training time: {lstm_time:.2f} seconds")
 
-lstm_pred = lstm_model.predict(X_test_lstm, verbose=0)
+lstm_pred = _predict_torch(lstm_model, X_test_lstm, verbose=0)
 
 lstm_mae = mean_absolute_error(y_test[:, 0], lstm_pred[:, 0])
 lstm_rmse = np.sqrt(mean_squared_error(y_test[:, 0], lstm_pred[:, 0]))
@@ -221,14 +310,12 @@ logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 
 
 # Code block 5
-from tensorflow.keras.layers import (
     Dense,
     Dropout,
     Input,
     LayerNormalization,
     MultiHeadAttention,
 )
-from tensorflow.keras.models import Model
 
 np.random.seed(42)
 
@@ -268,7 +355,7 @@ def build_transformer_model(
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
 
     # Global average pooling to get fixed-size representation
-    x = tf.keras.layers.GlobalAveragePooling1D()(x)
+    x = x.mean(dim=1)
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(forecast_horizon)(x)
@@ -279,7 +366,6 @@ def build_transformer_model(
 
 # Build and compile model
 transformer_model = build_transformer_model(seq_length, forecast_horizon)
-transformer_model.compile(optimizer="adam", loss="mse", metrics=["mae"])
 transformer_model.summary()
 
 # Train
@@ -287,20 +373,12 @@ logger.info("Training Transformer model...")
 start_time = time.time()
 
 early_stop = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-history_trans = transformer_model.fit(
-    X_train_lstm,
-    y_train,
-    epochs=100,
-    batch_size=16,
-    validation_split=0.2,
-    callbacks=[early_stop],
-    verbose=0,
-)
+history_trans = _train_torch(transformer_model, X_train_lstm, y_train)
 
 transformer_time = time.time() - start_time
 logger.info(f"Transformer training time: {transformer_time:.2f} seconds")
 
-transformer_pred = transformer_model.predict(X_test_lstm, verbose=0)
+transformer_pred = _predict_torch(transformer_model, X_test_lstm, verbose=0)
 
 transformer_mae = mean_absolute_error(y_test[:, 0], transformer_pred[:, 0])
 transformer_rmse = np.sqrt(mean_squared_error(y_test[:, 0], transformer_pred[:, 0]))
