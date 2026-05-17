@@ -116,8 +116,8 @@ def main():
     # Format anomaly report for LLM
     anomaly_prompt = "Recent oil production anomalies were detected: "
     anomaly_prompt += ", ".join(
-        f"{row['y']} barrels on {row.name.strftime('%B %d')}"
-        for _, row in anomalies.tail(5).iterrows()
+        f"{row.y} barrels on {row.Index.strftime('%B %d')}"
+        for row in anomalies.tail(5).itertuples()
     )
     anomaly_prompt += ". What could be the cause of these anomalies?"
 
