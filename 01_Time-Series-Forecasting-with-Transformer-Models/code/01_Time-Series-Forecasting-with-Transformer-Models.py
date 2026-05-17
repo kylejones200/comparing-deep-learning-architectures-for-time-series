@@ -217,13 +217,6 @@ lstm_rmse = np.sqrt(mean_squared_error(y_test[:, 0], lstm_pred[:, 0]))
 logger.info(f"LSTM MAE: {lstm_mae:.4f}")
 logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 
-    Dense,
-    Dropout,
-    Input,
-    LayerNormalization,
-    MultiHeadAttention,
-)
-
 np.random.seed(42)
 
 

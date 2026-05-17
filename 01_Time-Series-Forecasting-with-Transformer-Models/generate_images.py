@@ -309,14 +309,6 @@ logger.info(f"LSTM MAE: {lstm_mae:.4f}")
 logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 
 
-# Code block 5
-    Dense,
-    Dropout,
-    Input,
-    LayerNormalization,
-    MultiHeadAttention,
-)
-
 np.random.seed(42)
 
 

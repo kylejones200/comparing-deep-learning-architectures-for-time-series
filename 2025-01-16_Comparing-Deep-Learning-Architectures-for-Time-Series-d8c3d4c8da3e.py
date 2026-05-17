@@ -12,12 +12,6 @@ import pandas as pd
 from data_io import read_csv
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
-    Conv1D,
-    Dense,
-    Dropout,
-    LayerNormalization,
-    MultiHeadAttention,
-)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -172,7 +166,7 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
             nn.Dense(1),
         ]
     )
-        _train_torch(model_fnn, X_train, y_train)
+    _train_torch(model_fnn, X_train, y_train)
     results["FNN"] = _predict_torch(model_fnn, X_test)
 
     # LSTM
@@ -185,7 +179,7 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
             nn.Dense(1),
         ]
     )
-        _train_torch(model_lstm, X_train_lstm, y_train)
+    _train_torch(model_lstm, X_train_lstm, y_train)
     results["LSTM"] = _predict_torch(model_lstm, X_test_lstm)
 
     # CNN
@@ -199,7 +193,7 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
             nn.Dense(1),
         ]
     )
-        _train_torch(model_cnn, X_train_lstm, y_train)
+    _train_torch(model_cnn, X_train_lstm, y_train)
     results["CNN"] = _predict_torch(model_cnn, X_test_lstm)
 
     # TCN
@@ -209,7 +203,7 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
         x = residual_block(x, dilation_rate=2**i, filters=64)
     x = Dense(1)(x[:, -1, :])
     model_tcn = Model(inputs_tcn, x)
-        _train_torch(model_tcn, X_train_lstm, y_train)
+    _train_torch(model_tcn, X_train_lstm, y_train)
     results["TCN"] = _predict_torch(model_tcn, X_test_lstm)
 
     # Transformer
@@ -219,7 +213,7 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
         x = transformer_encoder(x, head_size=256, num_heads=4, ff_dim=4, dropout=0.1)
     x = Dense(1)(x[:, -1, :])
     model_transformer = Model(inputs_transformer, x)
-        _train_torch(model_transformer, X_train_lstm, y_train)
+    _train_torch(model_transformer, X_train_lstm, y_train)
     results["Transformer"] = _predict_torch(model_transformer, X_test_lstm)
 
     return results
