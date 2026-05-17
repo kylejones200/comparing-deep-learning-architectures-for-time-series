@@ -52,3 +52,11 @@ Edit `config.yaml` to customize:
 - By default, generates synthetic time series data.
 - Full implementations require TensorFlow/Keras or PyTorch.
 - Architecture selection depends on data characteristics.
+
+## Disclaimer
+
+Educational/demo code only. Not financial, safety, or engineering advice. Use at your own risk. Verify results independently before any production or operational use.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
