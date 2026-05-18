@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """Generate Tufte-style visualizations for transformer forecasting article."""
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
 import logging
+import time
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import signalplot
+import torch
+import torch.nn as nn
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
+from statsmodels.tsa.arima.model import ARIMA
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.models import Sequential
+from torch.utils.data import DataLoader, TensorDataset
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -30,12 +36,22 @@ original_savefig = plt.savefig
 
 class _TransformerForecaster(nn.Module):
     """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
-    def __init__(self, n_features: int, d_model: int = 64, nhead: int = 4,
-                 ff_dim: int = 128, num_layers: int = 2,
-                 output_size: int = 1, dropout: float = 0.0):
+
+    def __init__(
+        self,
+        n_features: int,
+        d_model: int = 64,
+        nhead: int = 4,
+        ff_dim: int = 128,
+        num_layers: int = 2,
+        output_size: int = 1,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.proj = nn.Linear(n_features, d_model)
-        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        layer = nn.TransformerEncoderLayer(
+            d_model, nhead, ff_dim, dropout, batch_first=True
+        )
         self.encoder = nn.TransformerEncoder(layer, num_layers)
         self.fc = nn.Linear(d_model, output_size)
 
@@ -44,10 +60,18 @@ class _TransformerForecaster(nn.Module):
         x = self.encoder(x)
         return self.fc(x[:, -1, :])
 
-def _train_torch(model: nn.Module, X_train, y_train, *,
-                 epochs: int = 50, batch_size: int = 32,
-                 lr: float = 0.001, validation_split: float = 0.2,
-                 patience: int = 10) -> nn.Module:
+
+def _train_torch(
+    model: nn.Module,
+    X_train,
+    y_train,
+    *,
+    epochs: int = 50,
+    batch_size: int = 32,
+    lr: float = 0.001,
+    validation_split: float = 0.2,
+    patience: int = 10,
+) -> nn.Module:
     """Standard training loop replacing  + model.fit()."""
     X_t = torch.FloatTensor(X_train)
     y_t = torch.FloatTensor(y_train)
@@ -83,15 +107,26 @@ def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
     model.eval()
     with torch.no_grad():
         return model(torch.FloatTensor(X_test)).numpy()
+
 
 class _TransformerForecaster(nn.Module):
     """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
-    def __init__(self, n_features: int, d_model: int = 64, nhead: int = 4,
-                 ff_dim: int = 128, num_layers: int = 2,
-                 output_size: int = 1, dropout: float = 0.0):
+
+    def __init__(
+        self,
+        n_features: int,
+        d_model: int = 64,
+        nhead: int = 4,
+        ff_dim: int = 128,
+        num_layers: int = 2,
+        output_size: int = 1,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.proj = nn.Linear(n_features, d_model)
-        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        layer = nn.TransformerEncoderLayer(
+            d_model, nhead, ff_dim, dropout, batch_first=True
+        )
         self.encoder = nn.TransformerEncoder(layer, num_layers)
         self.fc = nn.Linear(d_model, output_size)
 
@@ -100,10 +135,18 @@ class _TransformerForecaster(nn.Module):
         x = self.encoder(x)
         return self.fc(x[:, -1, :])
 
-def _train_torch(model: nn.Module, X_train, y_train, *,
-                 epochs: int = 50, batch_size: int = 32,
-                 lr: float = 0.001, validation_split: float = 0.2,
-                 patience: int = 10) -> nn.Module:
+
+def _train_torch(
+    model: nn.Module,
+    X_train,
+    y_train,
+    *,
+    epochs: int = 50,
+    batch_size: int = 32,
+    lr: float = 0.001,
+    validation_split: float = 0.2,
+    patience: int = 10,
+) -> nn.Module:
     """Standard training loop replacing  + model.fit()."""
     X_t = torch.FloatTensor(X_train)
     y_t = torch.FloatTensor(y_train)
@@ -139,6 +182,7 @@ def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
     model.eval()
     with torch.no_grad():
         return model(torch.FloatTensor(X_test)).numpy()
+
 
 def savefig_tufte(filename: str | Path, **kwargs) -> None:
     """Save figures in the `images` directory with consistent style."""
@@ -150,7 +194,6 @@ def savefig_tufte(filename: str | Path, **kwargs) -> None:
 
 
 plt.savefig = savefig_tufte
-
 
 # Set random seeds for reproducibility
 try:
@@ -189,9 +232,7 @@ logger.info(f"Date range: {ts_data.index.min()} to {ts_data.index.max()}")
 logger.info(f"Value range: {ts_data.min():.2f} to {ts_data.max():.2f}")
 logger.info(f"\nFirst 10 values:\n{ts_data.head(10)}")
 
-
 # Code block 2
-from sklearn.preprocessing import MinMaxScaler
 
 scaler = MinMaxScaler()
 ts_scaled = scaler.fit_transform(ts_data.values.reshape(-1, 1)).flatten()
@@ -200,7 +241,6 @@ ts_scaled = scaler.fit_transform(ts_data.values.reshape(-1, 1)).flatten()
 def create_sequences(data, seq_length, forecast_horizon=12):
     """
     Create input-output sequences for time series forecasting.
-
     Parameters:
     -----------
     data : array-like
@@ -239,12 +279,8 @@ logger.info(f"Test samples: {len(X_test)}")
 logger.info(f"Sequence length: {seq_length}")
 logger.info(f"Forecast horizon: {forecast_horizon}")
 
-
 # Code block 3
-import time
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.arima.model import ARIMA
 
 # Use original (non-scaled) data for ARIMA
 ts_train = ts_data[: split_idx + seq_length]
@@ -269,7 +305,6 @@ arima_rmse = np.sqrt(mean_squared_error(ts_test[: len(arima_forecast)], arima_fo
 
 logger.info(f"ARIMA MAE: {arima_mae:.2f}")
 logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
-
 
 # Code block 4
 
@@ -308,7 +343,6 @@ lstm_rmse = np.sqrt(mean_squared_error(y_test[:, 0], lstm_pred[:, 0]))
 logger.info(f"LSTM MAE: {lstm_mae:.4f}")
 logger.info(f"LSTM RMSE: {lstm_rmse:.4f}")
 
-
 np.random.seed(42)
 
 
@@ -320,7 +354,6 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     )(inputs, inputs)
     attention = Dropout(dropout)(attention)
     attention = LayerNormalization(epsilon=1e-6)(inputs + attention)
-
     # Feed-forward network
     ffn = Dense(ff_dim, activation="relu")(attention)
     ffn = Dense(inputs.shape[-1])(ffn)
@@ -341,7 +374,6 @@ def build_transformer_model(
     """Build Transformer model for time series forecasting"""
     inputs = Input(shape=(seq_length, 1))
     x = inputs
-
     # Stack transformer encoder layers
     for _ in range(num_layers):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
@@ -351,7 +383,6 @@ def build_transformer_model(
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(forecast_horizon)(x)
-
     model = Model(inputs, outputs)
     return model
 
@@ -377,7 +408,6 @@ transformer_rmse = np.sqrt(mean_squared_error(y_test[:, 0], transformer_pred[:, 
 
 logger.info(f"Transformer MAE: {transformer_mae:.4f}")
 logger.info(f"Transformer RMSE: {transformer_rmse:.4f}")
-
 
 # Code block 6
 # Compile results
@@ -425,7 +455,6 @@ for model, metrics in results.items():
     logger.info(
         f"{model:<15} {metrics['MAE']:<12.4f} {metrics['RMSE']:<12.4f} {metrics['Time']:<12.2f}"
     )
-
 
 # Code block 7
 # Get test period dates
@@ -502,11 +531,9 @@ plt.tight_layout()
 plt.savefig("forecast_comparison.png", dpi=300, bbox_inches="tight")
 plt.show()
 
-
 # Code block 8
 # Complete code for reproducibility
 # All imports, data loading, model training, and evaluation
 # See individual code blocks above for full implementation
-
 
 logger.info("All images generated successfully!")

@@ -82,7 +82,6 @@ def main(plot: bool = False):
     ts = load_series(cfg)
     mean_mae, (y_true, y_pred) = rolling_origin_nbeats(ts, cfg)
     logger.info(f"N-BEATS mean MAE: {mean_mae}")
-
     if plot:
         plt.figure(figsize=(9, 4))
         ts.plot(label="history", alpha=0.6)

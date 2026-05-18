@@ -1,20 +1,26 @@
+import logging
+import time
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import signalplot
 import torch
 import torch.nn as nn
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
+from statsmodels.tsa.arima.model import ARIMA
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.models import Sequential
 from torch.utils.data import DataLoader, TensorDataset
-import logging
-
-import signalplot
 
 logger = logging.getLogger(__name__)
 
 # Extracted code from '01_Time-Series-Forecasting-with-Transformer-Models.md'
 # Blocks appear in the same order as in the markdown article.
 
-from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
 # Set random seeds for reproducibility
 
@@ -41,7 +47,6 @@ logger.info(f"Date range: {ts_data.index.min()} to {ts_data.index.max()}")
 logger.info(f"Value range: {ts_data.min():.2f} to {ts_data.max():.2f}")
 logger.info(f"\nFirst 10 values:\n{ts_data.head(10)}")
 
-from sklearn.preprocessing import MinMaxScaler
 
 # Normalize for neural networks
 scaler = MinMaxScaler()
@@ -51,12 +56,22 @@ ts_scaled = scaler.fit_transform(ts_data.values.reshape(-1, 1)).flatten()
 # Create sequences for time series forecasting
 class _TransformerForecaster(nn.Module):
     """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
-    def __init__(self, n_features: int, d_model: int = 64, nhead: int = 4,
-                 ff_dim: int = 128, num_layers: int = 2,
-                 output_size: int = 1, dropout: float = 0.0):
+
+    def __init__(
+        self,
+        n_features: int,
+        d_model: int = 64,
+        nhead: int = 4,
+        ff_dim: int = 128,
+        num_layers: int = 2,
+        output_size: int = 1,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.proj = nn.Linear(n_features, d_model)
-        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        layer = nn.TransformerEncoderLayer(
+            d_model, nhead, ff_dim, dropout, batch_first=True
+        )
         self.encoder = nn.TransformerEncoder(layer, num_layers)
         self.fc = nn.Linear(d_model, output_size)
 
@@ -65,10 +80,18 @@ class _TransformerForecaster(nn.Module):
         x = self.encoder(x)
         return self.fc(x[:, -1, :])
 
-def _train_torch(model: nn.Module, X_train, y_train, *,
-                 epochs: int = 50, batch_size: int = 32,
-                 lr: float = 0.001, validation_split: float = 0.2,
-                 patience: int = 10) -> nn.Module:
+
+def _train_torch(
+    model: nn.Module,
+    X_train,
+    y_train,
+    *,
+    epochs: int = 50,
+    batch_size: int = 32,
+    lr: float = 0.001,
+    validation_split: float = 0.2,
+    patience: int = 10,
+) -> nn.Module:
     """Standard training loop replacing  + model.fit()."""
     X_t = torch.FloatTensor(X_train)
     y_t = torch.FloatTensor(y_train)
@@ -105,10 +128,10 @@ def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
     with torch.no_grad():
         return model(torch.FloatTensor(X_test)).numpy()
 
+
 def create_sequences(data, seq_length, forecast_horizon=12):
     """
     Create input-output sequences for time series forecasting.
-
     Parameters:
     -----------
     data : array-like
@@ -149,10 +172,7 @@ logger.info(f"Test samples: {len(X_test)}")
 logger.info(f"Sequence length: {seq_length}")
 logger.info(f"Forecast horizon: {forecast_horizon}")
 
-import time
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.arima.model import ARIMA
 
 # Use original (non-scaled) data for ARIMA
 ts_train = ts_data[: split_idx + seq_length]
@@ -178,7 +198,6 @@ arima_rmse = np.sqrt(mean_squared_error(ts_test[: len(arima_forecast)], arima_fo
 
 logger.info(f"ARIMA MAE: {arima_mae:.2f}")
 logger.info(f"ARIMA RMSE: {arima_rmse:.2f}")
-
 
 # Reshape for LSTM: (samples, timesteps, features)
 X_train_lstm = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
@@ -228,7 +247,6 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     )(inputs, inputs)
     attention = Dropout(dropout)(attention)
     attention = LayerNormalization(epsilon=1e-6)(inputs + attention)
-
     # Feed-forward network
     ffn = Dense(ff_dim, activation="relu")(attention)
     ffn = Dense(inputs.shape[-1])(ffn)
@@ -249,7 +267,6 @@ def build_transformer_model(
     """Build Transformer model for time series forecasting"""
     inputs = Input(shape=(seq_length, 1))
     x = inputs
-
     # Stack transformer encoder layers
     for _ in range(num_layers):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
@@ -259,7 +276,6 @@ def build_transformer_model(
     x = Dense(ff_dim, activation="relu")(x)
     x = Dropout(dropout)(x)
     outputs = Dense(forecast_horizon)(x)
-
     model = Model(inputs, outputs)
     return model
 

@@ -1,24 +1,22 @@
 # Description: Short example for Comparing Deep Learning Architectures for Time Series.
 
-
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
 import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
+import torch.nn as nn
 from data_io import read_csv
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader, TensorDataset
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-
 
 # Generate synthetic data
 date_rng = pd.date_range(start="2020-01-01", end="2022-12-31", freq="D")
@@ -38,12 +36,22 @@ X, y = prepare_data(scaled_data, n_steps=30)
 # Function to prepare data for time series modeling
 class _TransformerForecaster(nn.Module):
     """Transformer forecaster (auto-generated PyTorch replacement for Keras)."""
-    def __init__(self, n_features: int, d_model: int = 256, nhead: int = 4,
-                 ff_dim: int = 4, num_layers: int = 2,
-                 output_size: int = 1, dropout: float = 0.0):
+
+    def __init__(
+        self,
+        n_features: int,
+        d_model: int = 256,
+        nhead: int = 4,
+        ff_dim: int = 4,
+        num_layers: int = 2,
+        output_size: int = 1,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.proj = nn.Linear(n_features, d_model)
-        layer = nn.TransformerEncoderLayer(d_model, nhead, ff_dim, dropout, batch_first=True)
+        layer = nn.TransformerEncoderLayer(
+            d_model, nhead, ff_dim, dropout, batch_first=True
+        )
         self.encoder = nn.TransformerEncoder(layer, num_layers)
         self.fc = nn.Linear(d_model, output_size)
 
@@ -52,10 +60,18 @@ class _TransformerForecaster(nn.Module):
         x = self.encoder(x)
         return self.fc(x[:, -1, :])
 
-def _train_torch(model: nn.Module, X_train, y_train, *,
-                 epochs: int = 50, batch_size: int = 32,
-                 lr: float = 0.001, validation_split: float = 0.2,
-                 patience: int = 15) -> nn.Module:
+
+def _train_torch(
+    model: nn.Module,
+    X_train,
+    y_train,
+    *,
+    epochs: int = 50,
+    batch_size: int = 32,
+    lr: float = 0.001,
+    validation_split: float = 0.2,
+    patience: int = 15,
+) -> nn.Module:
     """Standard training loop replacing  + model.fit()."""
     X_t = torch.FloatTensor(X_train)
     y_t = torch.FloatTensor(y_train)
@@ -91,6 +107,7 @@ def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
     model.eval()
     with torch.no_grad():
         return model(torch.FloatTensor(X_test)).numpy()
+
 
 def prepare_data(data, n_steps):
     X, y = [], []
@@ -144,7 +161,6 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     x = Dropout(dropout)(x)
     x = LayerNormalization(epsilon=1e-6)(x)
     res = x + inputs
-
     x = Dense(ff_dim, activation="relu")(res)
     x = Dropout(dropout)(x)
     x = Dense(inputs.shape[-1])(x)
@@ -155,7 +171,6 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 # Function to train and evaluate models
 def run_models(X_train, X_test, y_train, y_test, n_steps):
     results = {}
-
     # FNN
     model_fnn = Sequential(
         [
@@ -168,7 +183,6 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     )
     _train_torch(model_fnn, X_train, y_train)
     results["FNN"] = _predict_torch(model_fnn, X_test)
-
     # LSTM
     X_train_lstm = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
     X_test_lstm = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
@@ -181,7 +195,6 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     )
     _train_torch(model_lstm, X_train_lstm, y_train)
     results["LSTM"] = _predict_torch(model_lstm, X_test_lstm)
-
     # CNN
     model_cnn = Sequential(
         [
@@ -195,7 +208,6 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     )
     _train_torch(model_cnn, X_train_lstm, y_train)
     results["CNN"] = _predict_torch(model_cnn, X_test_lstm)
-
     # TCN
     inputs_tcn = nn.Input(shape=(n_steps, 1))
     x = inputs_tcn
@@ -205,7 +217,6 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     model_tcn = Model(inputs_tcn, x)
     _train_torch(model_tcn, X_train_lstm, y_train)
     results["TCN"] = _predict_torch(model_tcn, X_test_lstm)
-
     # Transformer
     inputs_transformer = Input(shape=(n_steps, 1))
     x = inputs_transformer
@@ -215,7 +226,6 @@ def run_models(X_train, X_test, y_train, y_test, n_steps):
     model_transformer = Model(inputs_transformer, x)
     _train_torch(model_transformer, X_train_lstm, y_train)
     results["Transformer"] = _predict_torch(model_transformer, X_test_lstm)
-
     return results
 
 
@@ -229,7 +239,6 @@ def evaluate_and_plot(y_test, results, scaler, plot: bool = False):
     predictions_inv = {
         name: scaler.inverse_transform(pred) for name, pred in results.items()
     }
-
     # Plot predictions
     if plot:
         plt.figure(figsize=(12, 6))

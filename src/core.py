@@ -1,6 +1,5 @@
 """Core functions for comparing deep learning architectures for time series."""
 
-import logging
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -9,9 +8,6 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 def create_lagged_features(
@@ -32,14 +28,11 @@ def prepare_data_for_lstm(
     scaler = MinMaxScaler()
     values = data.values.reshape(-1, 1)
     scaled = scaler.fit_transform(values)
-
     X, y = create_lagged_features(scaled.flatten(), lag)
     X = X.reshape(X.shape[0], X.shape[1], 1)
-
     train_size_int = int(len(X) * train_size)
     X_train, X_test = X[:train_size_int], X[train_size_int:]
     y_train, y_test = y[:train_size_int], y[train_size_int:]
-
     return X_train, X_test, y_train, y_test, scaler
 
 
@@ -54,15 +47,13 @@ def calculate_model_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict:
 
 def plot_architecture_comparison(
     results: Dict[str, np.ndarray], actual: np.ndarray, title: str, output_path: Path
-):
+, plot: bool = False):
     """Plot comparison of different architectures"""
     if not plot:
         return
 
     fig, ax = plt.subplots(figsize=(10, 6))
-
     ax.plot(actual, label="Actual", color="#4A90A4", linewidth=1.2)
-
     colors = ["#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
     for i, (name, pred) in enumerate(results.items()):
         ax.plot(
@@ -76,6 +67,5 @@ def plot_architecture_comparison(
     ax.set_xlabel("Time")
     ax.set_ylabel("Value")
     ax.legend(loc="best")
-
     plt.savefig(output_path, dpi=100, bbox_inches="tight")
     plt.close()

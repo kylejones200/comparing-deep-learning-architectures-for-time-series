@@ -167,16 +167,12 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
 def main() -> None:
     filepath = "ercot_load_data.csv"
-
     n_steps = 30
-
     X_train, X_test, y_train, y_test, scaler = load_and_preprocess_data(
         filepath, n_steps
     )
-
     results = run_models(X_train, X_test, y_train, y_test, n_steps)
-
-    mse_scores = evaluate_and_plot(y_test, results, scaler)
+    evaluate_and_plot(y_test, results, scaler)
 
 
 if __name__ == "__main__":
