@@ -2,6 +2,14 @@
 
 This project demonstrates comparing different deep learning architectures for time series forecasting.
 
+## Business context
+
+Deep learning has revolutionized time series analysis with architectures like FNNs, LSTMs, CNNs, TCNs, and Transformers. Each model has unique strengths: FNNs provide a baseline, LSTMs capture long-term dependencies, CNNs identify local patterns, TCNs balance efficiency and range, and Transformers excel in complex relationships.
+
+We'll use a synthetic dataset that mimics real-world time series characteristics, including trend, seasonality, and noise and real world data from ERCOT on electricity load.
+
+With our dataset in place, let's explore different deep learning architectures, starting with the simplest and progressing to more complex models.
+
 ## Article
 
 Medium article: [Comparing Deep Learning Architectures for Time Series](https://medium.com/@kylejones_47003/comparing-deep-learning-architectures-for-time-series-d8c3d4c8da3e)
