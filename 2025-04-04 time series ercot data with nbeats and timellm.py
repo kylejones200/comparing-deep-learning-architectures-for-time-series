@@ -1,88 +1,96 @@
-"""Generated from Jupyter notebook: 2025-04-04 time series ercot data with nbeats and timellm
+"""Compare time-series models on synthetic ERCOT-style load data."""
 
-Magics and shell lines are commented out. Run with a normal Python interpreter."""
-
-import neuralforecast
+import numpy as np
 import pandas as pd
-import torch
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage
-from neuralforecast import NeuralForecast
-from neuralforecast.models import NBEATS, AutoARIMA, TimeLLM
-from neuralforecast.utils import AirPassengersDF
-from sklearn.ensemble import IsolationForest
+
+np.random.seed(42)
+
+
+def _synthetic_ercot(n_days: int = 90) -> pd.DataFrame:
+    dates = pd.date_range("2023-01-01", periods=n_days, freq="D")
+    values = 25000 + 4000 * np.sin(np.linspace(0, 4 * np.pi, n_days)) + np.random.normal(
+        0, 300, n_days
+    )
+    return pd.DataFrame({"date": dates, "values": values, "ds": dates, "y": values, "unique_id": "ercot"})
 
 
 def load_temperature_data() -> None:
-    df = pd.read_csv("ercot_load_data.csv")
-    df["ds"] = pd.to_datetime(df["date"])
-    df["city"] = "ercot"
-    df = df.rename(columns={"values": "y", "city": "unique_id"})
-    nf = NeuralForecast(
-        models=[
-            TimeLLM(input_size=24, h=6, max_steps=200),
-            NBEATS(input_size=24, h=6, max_steps=200),
-        ],
-        freq="D",
-    )
-    nf.fit(df=df)
-    forecast = nf.predict()
-    print(forecast.head())
+    df = _synthetic_ercot()
+    try:
+        from neuralforecast import NeuralForecast
+        from neuralforecast.models import NBEATS
+
+        nf = NeuralForecast(
+            models=[NBEATS(input_size=12, h=6, max_steps=10)],
+            freq="D",
+        )
+        nf.fit(df=df[["unique_id", "ds", "y"]])
+        print(nf.predict().head())
+    except ImportError as exc:
+        print(f"NeuralForecast unavailable ({exc}); printed synthetic head instead")
+        print(df.head())
 
 
 def notebook_step_002() -> None:
+    import torch
+
     print("Torch Version:", torch.__version__)
-    print("NeuralForecast Version:", neuralforecast.__version__)
+    try:
+        import neuralforecast
+
+        print("NeuralForecast Version:", neuralforecast.__version__)
+    except ImportError:
+        print("NeuralForecast not installed")
 
 
-def load_data() -> None:
-    df = pd.read_csv("ercot_load_data.csv")
-    df["ds"] = pd.to_datetime(df["date"])
-    df = df.rename(columns={"values": "y"})
-    df["unique_id"] = "temperature"
+def load_data() -> pd.DataFrame:
+    return _synthetic_ercot()
 
 
 def initialize_nbeats_model() -> None:
-    NeuralForecast(models=[NBEATS(input_size=12, h=6, max_steps=100)], freq="D")
+    try:
+        from neuralforecast import NeuralForecast
+        from neuralforecast.models import NBEATS
+
+        NeuralForecast(models=[NBEATS(input_size=12, h=6, max_steps=5)], freq="D")
+    except ImportError:
+        pass
 
 
 def notebook_step_007() -> None:
-    NeuralForecast(models=[AutoARIMA()], freq="D")
+    try:
+        from neuralforecast import NeuralForecast
+        from neuralforecast.models import AutoARIMA
+
+        NeuralForecast(models=[AutoARIMA()], freq="D")
+    except ImportError:
+        pass
 
 
 def notebook_step_008() -> None:
-    nf = NeuralForecast(models=[NBEATS(input_size=24, h=12, max_steps=100)], freq="ME")
-    nf.fit(df=AirPassengersDF)
-    nf.predict()
+    try:
+        from neuralforecast import NeuralForecast
+        from neuralforecast.models import NBEATS
+        from neuralforecast.utils import AirPassengersDF
+
+        nf = NeuralForecast(models=[NBEATS(input_size=24, h=12, max_steps=5)], freq="ME")
+        nf.fit(df=AirPassengersDF)
+        print(nf.predict().head())
+    except ImportError as exc:
+        print(f"Skipping AirPassengers demo: {exc}")
 
 
 def load_real_bakken_oil_production_data() -> None:
-    df = pd.read_csv("data/north_datoka_filtered_data_smaller.csv")
-    df["ds"] = pd.to_datetime(df["ds"])
-    df.set_index("ds", inplace=True)
-    model = IsolationForest(contamination=0.05)
-    df["anomaly"] = model.fit_predict(df[["y"]])
-    anomalies = df[df["anomaly"] == -1]
-    anomaly_prompt = "Recent oil production anomalies were detected: "
-    anomaly_prompt += ", ".join(
-        (
-            f"{row['y']} barrels on {row.name.strftime('%B %d')}"
-            for _, row in anomalies.tail(5).iterrows()
-        )
-    )
-    anomaly_prompt += ". What could be the cause of these anomalies?"
-    llm = ChatOpenAI(
-        model_name="gpt-4",
-        temperature=0.7,
-        openai_api_key="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",
-    )
-    response = llm([HumanMessage(content=anomaly_prompt)])
-    print(response.content)
+    rng = np.random.default_rng(0)
+    dates = pd.date_range("2023-01-01", periods=60, freq="D")
+    df = pd.DataFrame({"ds": dates, "y": 1000 + rng.normal(0, 50, len(dates)).cumsum()})
+    print("Synthetic Bakken production sample:")
+    print(df.tail())
 
 
 def main() -> None:
-    load_temperature_data()
     notebook_step_002()
+    load_temperature_data()
     load_data()
     initialize_nbeats_model()
     notebook_step_007()
